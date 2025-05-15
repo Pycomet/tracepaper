@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend # Path to the directory containing the Dockerfile
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000" # Map host port 8000 to container port 8000
+    volumes:
+      # Mount the backend/data directory to persist SQLite DB and FAISS index
+      - ./backend/data:/app/backend/data
+      # For development, you might want to mount your source code for live reloading
+      # Note: Uvicorn needs to be run with --reload for this to be effective inside the container
+      # If you enable this, ensure your CMD in Dockerfile also uses --reload
+      # - ./backend/app:/app/app 
+    environment:
+      # Ensures Python output is sent straight to terminal without being buffered first
+      - PYTHONUNBUFFERED=1 
+      # Example: If you had other environment variables your app needs
+      # - DATABASE_URL=sqlite:////app/backend/data/tracepaper.db # Path inside container
+      # - EMBEDDING_MODEL_NAME=intfloat/e5-small-v2
+    container_name: tracepaper_backend
+    # command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload # If you want to override CMD and enable reload 
+
+  frontend-tests:
+    build:
+      context: ./desktop
+      dockerfile: Dockerfile.devtest
+    container_name: tracepaper_frontend_tests
+    # We don't need to expose ports for a test runner
+    # Volumes can be useful for outputting test reports or for local dev if you want to 
+    # mount the source code instead of COPYing it in the Dockerfile (for faster iterations on tests without rebuilding)
+    # For CI, copying is generally fine.
+    # Example for mounting local code (ensure Dockerfile.devtest then doesn't COPY . . or does it to a different location):
+    # volumes:
+    #   - ./desktop:/usr/src/app
+    #   - /usr/src/app/node_modules # Anonymous volume to prevent host node_modules from overwriting container's
+    # The CMD in Dockerfile.devtest will run `npm test -- --watchAll=false`
+    # This service will run its command and then exit. 
+    # If you want it to be part of `docker-compose up` and see its output, that's the default behavior.
+    # If you only want to run it on demand: `docker-compose run --rm frontend-tests` 
+
+  file-watcher:
+    build:
+      context: ./file_watcher
+      dockerfile: Dockerfile
+    container_name: tracepaper_file_watcher
+    volumes:
+      # Mount a local directory to be watched by the service
+      # The watcher script expects this path to be set via WATCH_DIRECTORIES env var
+      # Example: Mount ./my_notes (on host) to /data/watched_files (in container)
+      - ./watched_markdown_files:/data/watched_markdown_files # Example host path
+    environment:
+      - PYTHONUNBUFFERED=1
+      - WATCH_DIRECTORIES=/data/watched_markdown_files # Path inside the container
+      - BACKEND_API_URL=http://backend:8000 # Service name 'backend' is resolvable by Docker's internal DNS
+    depends_on:
+      - backend # Ensure backend is up before watcher starts trying to send data
+    restart: unless-stopped # Keep the watcher running 
+
+  extension-tests:
+    build:
+      context: ./browser_extension
+      dockerfile: Dockerfile.test
+    container_name: tracepaper_extension_tests
+    # This service is meant to be run on demand, e.g., `docker-compose run --rm extension-tests`
+    # It needs to access the host X server if running Chrome with UI (not headless)
+    # but for headless (default in jest-puppeteer.config.js), it's not strictly needed.
+    # For headless, ensure `--no-sandbox` and `--disable-setuid-sandbox` args for Chrome.
+    # No ports need to be exposed for a test runner.
+    # The CMD in browser_extension/Dockerfile.test is `npm test`.
+    # It could optionally depend on the backend if tests were to hit the real backend,
+    # but our current test mocks fetch, so it's not a strict dependency for *this* test.
+    # depends_on:
+    #   - backend
+    # Environment variables can be passed if needed by the tests or Puppeteer setup
+    # environment:
+    #   - HEADLESS=true # or false to see the browser (might need X11 forwarding configured)
+    #   - SLOWMO=50 # ms, to slow down puppeteer actions 

@@ -1,0 +1,35 @@
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+sqlmodel>=0.0.11
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.4 # For Mac/Linux, or faiss-gpu if you have CUDA
+# For Windows, CPU-only Faiss might need a different installation or precompiled binary.
+# Consider: pip install faiss-cpu --no-cache
+
+python-multipart>=0.0.6
+
+# For PDF processing (Phase 3)
+# PyMuPDF>=1.23.0
+# pdf2image>=1.16.3 
+# pytesseract>=0.3.10
+
+# For audio processing (Phase 5/6)
+# openai-whisper>=20230918
+
+# For web scraping (Phase 4)
+# beautifulsoup4>=4.12.2
+# requests>=2.31.0
+
+# For watchers (Phase 3)
+# watchdog>=3.0.0 
+
+# Testing
+pytest>=7.4.0
+httpx>=0.24.1 # For async testing of FastAPI endpoints 
+
+# For AI Summarization (Phase 5)
+transformers>=4.30.0
+torch>=2.0.0 # Specify CPU-only if desired: torch==2.0.0+cpu - find correct one via pytorch.org
+# For specific CPU version from PyTorch.org (example for Linux/Windows):
+# torch==2.1.0+cpu --index-url https://download.pytorch.org/whl/cpu 
+# Ensure to pick the right version/platform for your needs or let pip try to resolve. 

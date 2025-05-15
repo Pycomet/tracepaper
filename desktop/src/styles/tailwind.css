@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* You can add custom base styles or components here if needed */
+body {
+    /* Example: apply a default background or font if not covered by React app structure */
+    /* @apply bg-gray-100 text-gray-900; */
+} 

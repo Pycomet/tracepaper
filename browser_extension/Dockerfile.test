@@ -1,0 +1,31 @@
+# browser_extension/Dockerfile.test
+
+# Use a Node.js base image that includes utilities for installing Chrome
+FROM mcr.microsoft.com/playwright:v1.40.0-jammy
+
+# Set working directory
+WORKDIR /app/browser_extension
+
+# Copy package.json and package-lock.json (if it exists)
+COPY package.json ./
+# COPY package-lock.json ./
+
+# Install npm dependencies
+RUN npm install
+
+# Copy the rest of the browser extension code
+COPY . .
+
+# Puppeteer needs these dependencies, Playwright base image should have them.
+# If using a different base image, you might need:
+# RUN apt-get update && apt-get install -y \
+#     chromium \
+#     # Add any other dependencies required by Puppeteer/Chrome
+#     --no-install-recommends \
+#  && rm -rf /var/lib/apt/lists/*
+
+# Set PUPPETEER_EXECUTABLE_PATH to the installed Chrome/Chromium if necessary
+# ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Command to run the tests
+CMD ["npm", "test"] 
