@@ -116,14 +116,14 @@ This outlines the planned development stages for the Minimum Viable Product (MVP
     *   Note: Content extraction in `content_script.js` is very basic and needs significant improvement for reliability across different websites. Placeholder icons need to be added to `browser_extension/images/`.
 
 5.  **Phase 5: AI Features - Summarization & Timeline**
-    *   [ ] Integrate a summarization model (e.g., `google/flan-t5-base`) into the FastAPI server.
-    *   [ ] Create API endpoint `POST /summarize` (accepts text or content IDs).
-    *   [ ] Develop "Daily Knowledge Summary":
+    *   [x] Integrate a summarization model (e.g., `google/flan-t5-base`) into the FastAPI server.
+    *   [x] Create API endpoint `POST /summarize` (accepts text or content IDs).
+    *   [x] Develop "Daily Knowledge Summary":
         *   Query content items for "today".
         *   Summarize them.
         *   Endpoint `GET /summary/today`.
-    *   [ ] Enhance Desktop UI to display ingested content in a timeline view.
-    *   [ ] Allow users to view summaries in the UI.
+    *   [x] Enhance Desktop UI to display ingested content in a timeline view.
+    *   [x] Allow users to view summaries in the UI.
 
 6.  **Phase 6: Advanced Features & Refinements (MVP Polish)**
     *   [ ] (Optional) Integrate Whisper for audio transcription if YouTube/podcast ingestion is prioritized for MVP.
