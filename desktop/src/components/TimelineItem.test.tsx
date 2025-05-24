@@ -20,7 +20,9 @@ describe('<TimelineItem />', () => {
   };
 
   test('renders item content correctly', () => {
-    render(<TimelineItem item={mockItem} />);
+    render(<TimelineItem item={mockItem} onSummarizeRequest={function (itemId: string): void {
+      throw new Error('Function not implemented.');
+    } } />);
     expect(screen.getByText('Test Source Title')).toBeInTheDocument();
     expect(screen.getByText('This is a test item content.')).toBeInTheDocument();
     expect(screen.getByText('http://example.com/test')).toBeInTheDocument();
@@ -40,7 +42,9 @@ describe('<TimelineItem />', () => {
   };
 
   test('renders correctly with minimal data (optional source object)', () => {
-    render(<TimelineItem item={minimalItem} />);
+    render(<TimelineItem item={minimalItem} onSummarizeRequest={function (itemId: string): void {
+      throw new Error('Function not implemented.');
+    } } />);
     expect(screen.getByText('Ingested Content')).toBeInTheDocument(); // Default title due to no source.title
     expect(screen.getByText('Minimal content.')).toBeInTheDocument();
     // Type comes from source.type, if source is undefined, it defaults to 'Unknown' in TimelineItem
@@ -48,7 +52,9 @@ describe('<TimelineItem />', () => {
   });
 
   test('does not render if item is null', () => {
-    const { container } = render(<TimelineItem item={null} />);
+    const { container } = render(<TimelineItem item={null} onSummarizeRequest={function (itemId: string): void {
+      throw new Error('Function not implemented.');
+    } } />);
     expect(container.firstChild).toBeNull();
   });
 }); 

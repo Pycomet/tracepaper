@@ -1,11 +1,18 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import App from './App';
 
-// global.fetch is now mocked in setupTests.ts
+// Mock the TimelineView component to avoid complexity
+jest.mock('./components/TimelineView', () => {
+  return function MockTimelineView() {
+    return <div data-testid="timeline-view">Timeline View Mock</div>;
+  };
+});
 
 beforeEach(() => {
   (global.fetch as jest.Mock).mockClear();
+  (global.alert as jest.Mock).mockClear();
   if (global.window.electronAPI && typeof global.window.electronAPI.invoke === 'function') {
     (global.window.electronAPI.invoke as jest.Mock).mockClear();
   }
@@ -13,24 +20,24 @@ beforeEach(() => {
 
 describe('<App />', () => {
   test('renders Tracepaper Desktop header', () => {
-    (global.fetch as jest.Mock).mockImplementationOnce(() => 
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ status: 'ok', message: 'Backend is healthy' }),
-      })
-    );
+    // Mock the health check
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', message: 'Backend is healthy' }),
+    });
+    
     render(<App />);
     const headerElement = screen.getByText(/Tracepaper Desktop/i);
     expect(headerElement).toBeInTheDocument();
   });
 
   test('displays loading message and then backend status', async () => {
-    (global.fetch as jest.Mock).mockImplementationOnce(() => 
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ status: 'ok', message: 'Backend is healthy for test' }),
-      })
-    );
+    // Mock the health check
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok', message: 'Backend is healthy for test' }),
+    });
+    
     render(<App />);
     expect(screen.getByText(/Connecting to backend.../i)).toBeInTheDocument();
     
@@ -40,9 +47,9 @@ describe('<App />', () => {
   });
 
   test('handles backend connection error', async () => {
-    (global.fetch as jest.Mock).mockImplementationOnce(() => 
-      Promise.reject(new Error('Network error for test'))
-    );
+    // Mock health check failure
+    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error for test'));
+    
     render(<App />);
     await waitFor(() => {
       expect(screen.getByText(/Error connecting to backend: Network error for test/i)).toBeInTheDocument();
@@ -50,7 +57,12 @@ describe('<App />', () => {
   });
 
   test('shows search input and button', () => {
-    (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }));
+    // Mock the health check
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true, 
+      json: () => Promise.resolve({ status: 'ok', message: 'Backend is healthy' })
+    });
+    
     render(<App />);
     expect(screen.getByPlaceholderText(/Search your knowledge.../i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Search/i })).toBeInTheDocument();
@@ -60,14 +72,33 @@ describe('<App />', () => {
     global.window.electronAPI = {
       invoke: jest.fn().mockResolvedValue('mocked IPC success'),
     };
-    (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) }));
+    
+    // Mock the health check
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true, 
+      json: () => Promise.resolve({ status: 'ok', message: 'Backend is healthy' })
+    });
     
     render(<App />);
     const ipcButton = screen.getByRole('button', { name: /Test IPC/i });
-    ipcButton.click();
+    await userEvent.click(ipcButton);
 
     await waitFor(() => {
       expect(global.window.electronAPI?.invoke).toHaveBeenCalledWith('my-invokable-ipc', 'hello from renderer');
     });
+    
+    // Check that alert was called
+    expect(global.alert).toHaveBeenCalledWith('IPC Response: mocked IPC success');
+  });
+
+  test('renders timeline component', () => {
+    // Mock the health check
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true, 
+      json: () => Promise.resolve({ status: 'ok', message: 'Backend is healthy' })
+    });
+    
+    render(<App />);
+    expect(screen.getByTestId('timeline-view')).toBeInTheDocument();
   });
 }); 

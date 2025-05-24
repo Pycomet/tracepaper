@@ -22,7 +22,9 @@ describe('<TimelineView />', () => {
 
   test('renders loading state initially', () => {
     (global.fetch as jest.Mock).mockImplementationOnce(() => new Promise(() => {})); // Keep it pending
-    render(<TimelineView backendUrl={backendUrl} />);
+    render(<TimelineView backendUrl={backendUrl} onRequestSummarization={function (itemId: string): Promise<void> {
+      throw new Error('Function not implemented.');
+    } } />);
     expect(screen.getByText(/Loading timeline.../i)).toBeInTheDocument();
   });
 
@@ -37,7 +39,9 @@ describe('<TimelineView />', () => {
         json: () => Promise.resolve(mockItems),
       })
     );
-    render(<TimelineView backendUrl={backendUrl} />);
+    render(<TimelineView backendUrl={backendUrl} onRequestSummarization={function (itemId: string): Promise<void> {
+      throw new Error('Function not implemented.');
+    } } />);
     await waitFor(() => {
       expect(screen.getByText(/My Knowledge Timeline/i)).toBeInTheDocument();
       expect(screen.getByTestId('timeline-item-1')).toHaveTextContent('Item 1');
@@ -52,7 +56,9 @@ describe('<TimelineView />', () => {
     (global.fetch as jest.Mock).mockImplementationOnce(() => 
       Promise.reject(new Error('Failed to fetch test'))
     );
-    render(<TimelineView backendUrl={backendUrl} />);
+    render(<TimelineView backendUrl={backendUrl} onRequestSummarization={function (itemId: string): Promise<void> {
+      throw new Error('Function not implemented.');
+    } } />);
     await waitFor(() => {
       expect(screen.getByText(/Error loading timeline: Failed to fetch test/i)).toBeInTheDocument();
     });
@@ -65,7 +71,9 @@ describe('<TimelineView />', () => {
         json: () => Promise.resolve([]),
       })
     );
-    render(<TimelineView backendUrl={backendUrl} />);
+    render(<TimelineView backendUrl={backendUrl} onRequestSummarization={function (itemId: string): Promise<void> {
+      throw new Error('Function not implemented.');
+    } } />);
     await waitFor(() => {
       expect(screen.getByText(/No items in your timeline yet/i)).toBeInTheDocument();
     });

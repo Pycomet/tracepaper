@@ -2,6 +2,7 @@ import pytest
 from typing import Generator, Any
 import os # Added
 from unittest import mock # Added mock
+from sentence_transformers import SentenceTransformer # Import SentenceTransformer
 
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine
@@ -51,45 +52,42 @@ def db_session(db_setup_session_scoped: None) -> Generator[Session, Any, None]: 
         # session.commit()
 
 @pytest.fixture(scope="function")
-def isolated_vector_db(tmp_path: Path, monkeypatch: MonkeyPatch) -> VectorDB:
+def isolated_vector_db(tmp_path: Path, monkeypatch: MonkeyPatch) -> None: # Changed return to None
     """
     Creates a VectorDB instance that uses temporary paths for its index files.
-    It also patches app.main.vector_db_instance to use this isolated one during tests.
+    It also patches app.main.vector_db_instance to use this isolated one during tests
+    and mocks the SentenceTransformer model loading.
     """
     test_index_path = str(tmp_path / "test_vector_index.faiss")
     test_id_map_path = str(tmp_path / "test_vector_id_map.pkl")
-    
-    # This fixture creates an instance, but the app needs its own.
-    # We will patch the VectorDB class used by app.main
-    # or directly set app.main.vector_db_instance.
 
-    # Since vector_db_instance is created in on_startup, we can patch 
-    # the VectorDB class that on_startup will use.
-    
+    # Create a mock SentenceTransformer
+    mock_sentence_transformer_instance = mock.MagicMock(spec=SentenceTransformer)
+    # Mock its methods. Adjust dimension as needed, e.g., e5-small-v2 uses 384
+    mock_sentence_transformer_instance.get_sentence_embedding_dimension.return_value = 384 
+    # Mock encode to return a dummy embedding of the correct shape
+    dummy_embedding = [[0.1] * 384] # Example: batch of 1, dimension 384
+    mock_sentence_transformer_instance.encode.return_value = dummy_embedding
+
     class PatchedVectorDB(VectorDB):
         def __init__(self, model_name="intfloat/e5-small-v2"):
-            # Force usage of temp paths for any instance created via this patched class
-            super().__init__(
-                model_name=model_name, 
-                index_file_path=test_index_path, 
-                id_map_file_path=test_id_map_path
-            )
-    
+            self.model_name = model_name
+            self.index_path = test_index_path # Use temp path directly
+            self.id_to_content_map_path = test_id_map_path # Use temp path directly
+            
+            os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
+            os.makedirs(os.path.dirname(self.id_to_content_map_path), exist_ok=True)
+
+            # Use the mocked SentenceTransformer instance
+            self.model = mock_sentence_transformer_instance
+            self.embedding_dim = self.model.get_sentence_embedding_dimension()
+            
+            self.load_or_create_index() # This will now use the mocked model's dim
+
     monkeypatch.setattr("app.main.VectorDB", PatchedVectorDB)
-    
-    # After tests, app.main.vector_db_instance might hold reference to PatchedVectorDB.
-    # We need to ensure it's reset if app instance persists across test client contexts.
-    # For TestClient, a new app instance is usually used or configured per client context.
-    # However, our global `app.main.vector_db_instance` variable needs to be cleared too.
     monkeypatch.setattr("app.main.vector_db_instance", None) # Ensure it's recreated by on_startup
 
-    # The fixture doesn't need to return the instance itself if it's just patching.
-    # But for clarity or direct use in tests, it could.
-    # For now, its job is to set up the patch.
-    yield # Indicates the patch is active during the test
-
-    # Teardown: monkeypatch automatically undoes its changes.
-    # The tmp_path directory is also automatically cleaned up by pytest.
+    yield
 
 @pytest.fixture(scope="session", autouse=True) # Autouse to apply to all tests in a session
 def mock_summarizer_init_session_scoped():
@@ -116,22 +114,17 @@ def client(
     def get_session_override() -> Generator[Session, Any, None]:
         yield db_session
 
-    # Correctly override the dependency
     original_get_session_dependency = app.dependency_overrides.get(get_session)
     app.dependency_overrides[get_session] = get_session_override
     
-    # Reset the global vector_db_instance in app.main before TestClient starts the app,
-    # so that on_startup instantiates it using the (potentially) patched VectorDB class.
     monkeypatch.setattr("app.main.vector_db_instance", None)
     
     with TestClient(app) as c:
         yield c
     
-    # Clean up dependency override
     if original_get_session_dependency is not None:
         app.dependency_overrides[get_session] = original_get_session_dependency
     else:
         del app.dependency_overrides[get_session]
     
-    # Clean up vector_db_instance for the next test that might use the client fixture
-    monkeypatch.setattr("app.main.vector_db_instance", None) # Ensure clean state for next test 
+    monkeypatch.setattr("app.main.vector_db_instance", None) 

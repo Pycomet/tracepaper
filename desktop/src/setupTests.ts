@@ -7,6 +7,9 @@ import '@testing-library/jest-dom';
 // Mock global fetch for all tests
 global.fetch = jest.fn();
 
+// Mock window.alert for tests
+global.alert = jest.fn();
+
 // You can also mock other global objects here if needed, for example:
 // global.window.electronAPI = {
 //   invoke: jest.fn(),

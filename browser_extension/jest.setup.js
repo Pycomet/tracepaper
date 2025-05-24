@@ -12,10 +12,18 @@ async function getBackgroundPage(browserInstance) {
     if (!browserInstance) {
         browserInstance = global.browser; // browser is globally available via jest-puppeteer
     }
-    const targets = await browserInstance.targets();
-    const backgroundPageTarget = targets.find(target => target.type() === 'service_worker'); // For MV3
+    
+    let backgroundPageTarget = null;
+    // Retry mechanism for finding the service worker target, as it might take a moment to initialize
+    for (let i = 0; i < 10; i++) { // Retry up to 10 times (e.g., 5 seconds if 500ms delay)
+        const targets = await browserInstance.targets();
+        backgroundPageTarget = targets.find(target => target.type() === 'service_worker');
+        if (backgroundPageTarget) break;
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retrying
+    }
+
     if (!backgroundPageTarget) {
-        throw new Error('Background page (service worker) not found.');
+        throw new Error('Background page (service worker) not found after retries.');
     }
     const backgroundPage = await backgroundPageTarget.worker(); // For MV3, use .worker()
     if (!backgroundPage) {
