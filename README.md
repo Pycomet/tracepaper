@@ -4,6 +4,9 @@
 
 Tracepaper quietly and privately monitors your research activity—papers, podcasts, videos, code—and turns it into structured knowledge you can query, summarize, and review.
 
+![Uploading Screenshot 2025-05-25 at 01.03.46.png…]()
+
+
 ## ✨ Features (MVP)
 
 - Desktop App UI (Electron)
